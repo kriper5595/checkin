@@ -1,17 +1,4 @@
-// โครงสร้างโค้ด JavaScript พื้นฐานสำหรับดึงข้อมูล
-await liff.init({ liffId: "YOUR_LIFF_ID_จากขั้นตอนที่_1" });
+<button class="btn btn-in" onclick="processCheckIn('เข้างาน')">📍 ลงเวลาเข้างาน</button>
+<button class="btn btn-out" onclick="processCheckIn('ออกงาน')">🚪 ลงเวลาออกงาน</button>
 
-if (liff.isLoggedIn()) {
-  const profile = await liff.getProfile();
-  const userId = profile.userId; // ได้รหัสผู้ใช้ LINE
-  
-  // ขอพิกัด GPS จากมือถือพนักงาน
-  navigator.geolocation.getCurrentPosition(position => {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    
-    // สั่งยิงข้อมูล (Fetch) นำ userId, lat, lng ส่งไปที่ Web App URL ในขั้นตอนที่ 2
-  });
-} else {
-  liff.login();
-}
+<div id="status"></div>
