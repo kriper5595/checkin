@@ -1,4 +1,106 @@
-<button class="btn btn-in" onclick="processCheckIn('เข้างาน')">📍 ลงเวลาเข้างาน</button>
-<button class="btn btn-out" onclick="processCheckIn('ออกงาน')">🚪 ลงเวลาออกงาน</button>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบลงเวลาทำงาน</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f0f2f5; }
+    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; width: 90%; max-width: 360px; }
+    .avatar { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; }
+    h2 { margin: 8px 0; font-size: 20px; color: #333; }
+    p { color: #666; font-size: 14px; margin-bottom: 20px; }
+    button { width: 100%; padding: 14px; margin: 6px 0; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; color: #fff; cursor: pointer; transition: 0.2s; }
+    .btn-in { background-color: #06C755; }
+    .btn-in:active { background-color: #05b04a; }
+    .btn-out { background-color: #de350b; }
+    .btn-out:active { background-color: #bf2600; }
+    #status { margin-top: 16px; font-weight: bold; font-size: 14px; min-height: 20px; }
+  </style>
+</head>
+<body>
 
-<div id="status"></div>
+  <div class="card">
+    <img id="user-img" class="avatar" src="https://via.placeholder.com/80" alt="Profile">
+    <h2 id="user-name">กำลังโหลด...</h2>
+    <p>กรุณากดปุ่มเพื่อลงเวลาทำงาน</p>
+    
+    <button class="btn-in" onclick="processCheckIn('เข้างาน')">📍 เช็คอินเข้างาน</button>
+    <button class="btn-out" onclick="processCheckIn('ออกงาน')">🚪 เช็คอินออกงาน</button>
+    
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // ⚠️ นำค่าที่ได้มาใส่ใน 2 บรรทัดนี้ ⚠️
+    const LIFF_ID = "ใส่_LIFF_ID_จาก_LINE_Developers";
+    const GAS_WEB_APP_URL = "ใส่_WEB_APP_URL_จาก_Google_Apps_Script";
+
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+        } else {
+          const profile = await liff.getProfile();
+          document.getElementById("user-name").innerText = profile.displayName;
+          if (profile.pictureUrl) {
+            document.getElementById("user-img").src = profile.pictureUrl;
+          }
+        }
+      } catch (err) {
+        document.getElementById("status").innerText = "เกิดข้อผิดพลาดในการโหลด LIFF";
+      }
+    }
+    initLiff();
+
+    function processCheckIn(actionType) {
+      const statusEl = document.getElementById("status");
+      statusEl.style.color = "#333";
+      statusEl.innerText = "⏳ กำลังระบุพิกัด GPS...";
+
+      if (!navigator.geolocation) {
+        statusEl.innerText = "❌ อุปกรณ์ของคุณไม่รองรับ GPS";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        statusEl.innerText = "⏳ กำลังบันทึกข้อมูล...";
+        
+        try {
+          const profile = await liff.getProfile();
+          const payload = {
+            userId: profile.userId,
+            displayName: profile.displayName,
+            action: actionType,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+
+          const response = await fetch(GAS_WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          
+          const result = await response.json();
+          if (result.status === "success") {
+            statusEl.style.color = "#06C755";
+            statusEl.innerText = "✅ " + result.message;
+            setTimeout(() => liff.closeWindow(), 2000);
+          } else {
+            throw new Error(result.message);
+          }
+        } catch (err) {
+          statusEl.style.color = "#de350b";
+          statusEl.innerText = "❌ บันทึกไม่สำเร็จ กรุณาลองใหม่";
+        }
+      }, (err) => {
+        statusEl.style.color = "#de350b";
+        statusEl.innerText = "❌ กรุณาเปิดใช้งาน Location (GPS)";
+      }, { enableHighAccuracy: true });
+    }
+  </script>
+</body>
+</html>
